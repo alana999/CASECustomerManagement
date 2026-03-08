@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>银行客户资产管理与精准营销驾驶舱</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #0b1120;
+            --card-bg: #1e293b;
+            --text-color: #e2e8f0;
+            --accent-color: #3b82f6;
+        }
+        body {
+            margin: 0;
+            padding: 20px;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Segoe UI', sans-serif;
+            overflow-x: hidden;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        h1 {
+            margin: 0;
+            font-weight: 300;
+            letter-spacing: 2px;
+        }
+        
+        /* KPI Cards */
+        .kpi-container {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .kpi-card {
+            background: var(--card-bg);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .kpi-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--accent-color);
+        }
+        .kpi-label {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        /* Charts Grid */
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-auto-rows: 350px; /* 增加高度 */
+            gap: 20px;
+        }
+        .chart-card {
+            background: var(--card-bg);
+            border-radius: 8px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+        }
+        .chart-title {
+            font-size: 1rem;
+            font-weight: 500;
+            margin-bottom: 10px;
+            /* 移除绝对定位 */
+        }
+        .chart-container {
+            flex: 1;
+            width: 100%;
+            min-height: 0; /* 允许 flex item 缩小 */
+        }
+
+        /* Responsive Layout */
+        @media (max-width: 1400px) {
+            .grid-container {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        @media (max-width: 768px) {
+            .grid-container {
+                grid-template-columns: 1fr;
+            }
+            .kpi-container {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .col-span-2 { grid-column: span 1; }
+        }
+        .col-span-2 { grid-column: span 2; }
+        .row-span-2 { grid-row: span 2; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>银行客户资产管理与精准营销驾驶舱</h1>
+    </header>
+
+    <div class="kpi-container" id="kpi-board">
+        <!-- KPIs will be injected here -->
+    </div>
+
+    <div class="grid-container">
+        <!-- Chart 1: Lifecycle -->
+        <div class="chart-card">
+            <div class="chart-title">客户生命周期分布</div>
+            <div id="chart1" class="chart-container"></div>
+        </div>
+        
+        <!-- Chart 8: Asset Level Distribution -->
+        <div class="chart-card">
+            <div class="chart-title">资产等级分布</div>
+            <div id="chart8" class="chart-container"></div>
+        </div>
+
+        <!-- Chart 4: Contact Result -->
+        <div class="chart-card">
+            <div class="chart-title">营销触达结果</div>
+            <div id="chart4" class="chart-container"></div>
+        </div>
+
+        <!-- Chart 7: Branch Top 10 -->
+        <div class="chart-card row-span-2">
+            <div class="chart-title">分行资产规模 Top 10 (万元)</div>
+            <div id="chart7" class="chart-container"></div>
+        </div>
+
+        <!-- Chart 3: Asset Composition -->
+        <div class="chart-card col-span-2">
+            <div class="chart-title">不同等级客户资产构成</div>
+            <div id="chart3" class="chart-container"></div>
+        </div>
+
+        <!-- Chart 6: App Behavior Radar -->
+        <div class="chart-card">
+            <div class="chart-title">APP行为偏好 (雷达图)</div>
+            <div id="chart6" class="chart-container"></div>
+        </div>
+
+        <!-- Chart 2: Occupation vs Asset Heatmap -->
+        <div class="chart-card col-span-2">
+            <div class="chart-title">职业与资产等级热力图</div>
+            <div id="chart2" class="chart-container"></div>
+        </div>
+
+        <!-- Chart 5: Age vs Asset Scatter -->
+        <div class="chart-card">
+            <div class="chart-title">年龄与资产分布 (抽样)</div>
+            <div id="chart5" class="chart-container"></div>
+        </div>
+    </div>
+
+    <script>
+        // Common ECharts Theme
+        const theme = 'dark';
+        const bgColor = '#1e293b';
+
+        // Fetch and Render Functions
+        async function fetchKPI() {
+            const res = await fetch('/api/kpi');
+            const data = await res.json();
+            const container = document.getElementById('kpi-board');
+            
+            const items = [
+                { label: '总管理资产 (AUM)', key: 'total_assets' },
+                { label: '总客户数', key: 'customer_count' },
+                { label: '户均资产', key: 'avg_assets' },
+                { label: '高净值客户占比', key: 'high_net_worth_ratio' },
+                { label: '营销触达成功率', key: 'contact_success_rate' }
+            ];
+
+            container.innerHTML = items.map(item => `
+                <div class="kpi-card">
+                    <div class="kpi-value">${data[item.key] || '-'}</div>
+                    <div class="kpi-label">${item.label}</div>
+                </div>
+            `).join('');
+        }
+
+        async function initChart1() {
+            const chart = echarts.init(document.getElementById('chart1'), theme, {renderer: 'canvas'});
+            const res = await fetch('/api/chart1');
+            const data = await res.json();
+            
+            chart.setOption({
+                backgroundColor: 'transparent',
+                tooltip: { trigger: 'item' },
+                legend: { top: 'bottom', textStyle: { color: '#ccc' } },
+                series: [{
+                    name: '生命周期',
+                    type: 'pie',
+                    radius: ['40%', '70%'],
+                    center: ['50%', '50%'],
+                    itemStyle: { borderRadius: 5 },
+                    data: data
+                }]
+            });
+        }
+
+        async function initChart8() {
+            const chart = echarts.init(document.getElementById('chart8'), theme);
+            const res = await fetch('/api/chart8');
+            const data = await res.json();
+            
+            chart.setOption({
+                backgroundColor: 'transparent',
+                tooltip: { trigger: 'item' },
+                legend: { top: 'bottom', textStyle: { color: '#ccc' } },
+                series: [{
+                    name: '资产等级',
+                    type: 'pie',
+                    radius: '50%',
+                    data: data,
+                    emphasis: {
+                        itemStyle: {
+                            shadowBlur: 10,
+                            shadowOffsetX: 0,
+                            shadowColor: 'rgba(0, 0, 0, 0.5)'
+                        }
+                    }
+                }]
+            });
+        }
+
+        async function initChart4() {
+            const chart = echarts.init(document.getElementById('chart4'), theme);
+            const res = await fetch('/api/chart4');
+            const data = await res.json();
+            
+            chart.setOption({
+                backgroundColor: 'transparent',
+                tooltip: { trigger: 'item' },
+                legend: { top: 'bottom', textStyle: { color: '#ccc' } },
+                series: [{
+                    name: '触达结果',
+                    type: 'pie',
+                    radius: ['40%', '70%'],
+                    roseType: 'area',
+                    itemStyle: { borderRadius: 8 },
+                    data: data
+                }]
+            });
+        }
+
+        async function initChart7() {
+            const chart = echarts.init(document.getElementById('chart7'), theme);
+            const res = await fetch('/api/chart7');
+            const data = await res.json();
+            
+            chart.setOption({
+                backgroundColor: 'transparent',
+                tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+                grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+                xAxis: { type: 'value', boundaryGap: [0, 0.01] },
+                yAxis: { type: 'category', data: data.y_axis },
+                series: [{
+                    name: '总资产(万元)',
+                    type: 'bar',
+                    data: data.data,
+                    itemStyle: { color: '#3b82f6' }
+                }]
+            });
+        }
+
+        async function initChart3() {
+            const chart = echarts.init(document.getElementById('chart3'), theme);
+            const res = await fetch('/api/chart3');
+            const data = await res.json();
+            
+            chart.setOption({
+                backgroundColor: 'transparent',
+                tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+                legend: { top: 'bottom', textStyle: { color: '#ccc' } },
+                grid: { left: '3%', right: '4%', bottom: '10%', containLabel: true },
+                xAxis: { type: 'category', data: data.categories },
+                yAxis: { type: 'value' },
+                series: data.series
+            });
+        }
+
+        async function initChart6() {
+            const chart = echarts.init(document.getElementById('chart6'), theme);
+            const res = await fetch('/api/chart6');
+            const data = await res.json();
+            
+            // Transform data for radar chart series
+            const seriesData = data.data;
+
+            chart.setOption({
+                backgroundColor: 'transparent',
+                tooltip: {},
+                legend: { top: 'bottom', type: 'scroll', textStyle: { color: '#ccc' } },
+                radar: {
+                    indicator: [
+                        { name: '登录次数', max: 1 },
+                        { name: '理财浏览时长', max: 1 },
+                        { name: '产品对比次数', max: 1 }
+                    ],
+                    splitNumber: 4,
+                    axisName: { color: '#fff' },
+                    splitLine: { lineStyle: { color: 'rgba(255, 255, 255, 0.1)' } },
+                    splitArea: { show: false }
+                },
+                series: [{
+                    name: 'APP行为偏好',
+                    type: 'radar',
+                    data: seriesData
+                }]
+            });
+        }
+
+        async function initChart2() {
+            const chart = echarts.init(document.getElementById('chart2'), theme);
+            const res = await fetch('/api/chart2');
+            const data = await res.json();
+            
+            chart.setOption({
+                backgroundColor: 'transparent',
+                tooltip: { position: 'top' },
+                grid: { height: '50%', top: '15%' },
+                xAxis: { type: 'category', data: data.x_axis, splitArea: { show: true } },
+                yAxis: { type: 'category', data: data.y_axis, splitArea: { show: true } },
+                visualMap: {
+                    min: 0,
+                    max: 1000, // Adjust based on data
+                    calculable: true,
+                    orient: 'horizontal',
+                    left: 'center',
+                    bottom: '0%'
+                },
+                series: [{
+                    name: '人数',
+                    type: 'heatmap',
+                    data: data.data,
+                    label: { show: true },
+                    emphasis: {
+                        itemStyle: { shadowBlur: 10, shadowColor: 'rgba(0, 0, 0, 0.5)' }
+                    }
+                }]
+            });
+        }
+
+        async function initChart5() {
+            const chart = echarts.init(document.getElementById('chart5'), theme);
+            const res = await fetch('/api/chart5');
+            const data = await res.json();
+            
+            chart.setOption({
+                backgroundColor: 'transparent',
+                tooltip: { 
+                    trigger: 'item',
+                    formatter: function (params) {
+                        return params.seriesName + '<br/>年龄: ' + params.data[0] + '<br/>资产: ' + params.data[1];
+                    }
+                },
+                legend: { top: 'bottom', type: 'scroll', textStyle: { color: '#ccc' } },
+                xAxis: { name: '年龄', splitLine: { lineStyle: { type: 'dashed' } } },
+                yAxis: { name: '资产', splitLine: { lineStyle: { type: 'dashed' } } },
+                series: data.map(item => ({
+                    ...item,
+                    symbolSize: 6
+                }))
+            });
+        }
+
+        // Initialize all
+        window.onload = function() {
+            fetchKPI();
+            initChart1();
+            initChart8();
+            initChart4();
+            initChart7();
+            initChart3();
+            initChart6();
+            initChart2();
+            initChart5();
+        };
+
+        // Resize handler
+        window.onresize = function() {
+            const charts = document.querySelectorAll('.chart-container');
+            charts.forEach(c => {
+                const instance = echarts.getInstanceByDom(c);
+                if (instance) instance.resize();
+            });
+        };
+    </script>
+</body>
+</html>

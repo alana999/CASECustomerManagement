@@ -1,0 +1,5 @@
+1、读取customer_base.csv和customer_behavior_assets.csv的前5行数据，输出全部列
+2、将刚才读取的数据表的字段含义写入到.md
+3、我想搭建可视化大屏，针对 `d:\BaiduNetdiskDownload\AI\CASECustomerManagement\项目说明.txt` 和当前数据表，有哪些表格可以展示？先说明思路即可。
+4、帮我搭建这个可视化大屏，使用Flask + Echarts，图表数量不超过8个
+我发现，只有缩小网页的时候，才能完整显示“客户生命周期分布”、“资产等级分布”，是请问是否有必要调整布局?
