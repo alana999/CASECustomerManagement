@@ -109,9 +109,9 @@
     </div>
 
     <div class="grid-container">
-        <!-- Chart 1: Lifecycle -->
+        <!-- Chart 1: Lifecycle Funnel -->
         <div class="chart-card">
-            <div class="chart-title">客户生命周期分布</div>
+            <div class="chart-title">客户生命周期漏斗图</div>
             <div id="chart1" class="chart-container"></div>
         </div>
         
@@ -187,21 +187,58 @@
 
         async function initChart1() {
             const chart = echarts.init(document.getElementById('chart1'), theme, {renderer: 'canvas'});
-            const res = await fetch('/api/chart1');
+            const res = await fetch('/api/chart9'); // 调用新的 API 接口
             const data = await res.json();
             
             chart.setOption({
                 backgroundColor: 'transparent',
-                tooltip: { trigger: 'item' },
-                legend: { top: 'bottom', textStyle: { color: '#ccc' } },
-                series: [{
-                    name: '生命周期',
-                    type: 'pie',
-                    radius: ['40%', '70%'],
-                    center: ['50%', '50%'],
-                    itemStyle: { borderRadius: 5 },
-                    data: data
-                }]
+                tooltip: {
+                    trigger: 'item',
+                    formatter: "{b} : {c}人"
+                },
+                legend: {
+                    data: data.map(item => item.name),
+                    top: 'bottom',
+                    textStyle: { color: '#ccc' }
+                },
+                series: [
+                    {
+                        name: '客户生命周期',
+                        type: 'funnel',
+                        left: '10%',
+                        top: 60,
+                        bottom: 60,
+                        width: '80%',
+                        min: 0,
+                        max: data[0] ? data[0].value : 100, // 以最大值为漏斗顶部
+                        minSize: '0%',
+                        maxSize: '100%',
+                        sort: 'descending', // 降序排列
+                        gap: 2,
+                        label: {
+                            show: true,
+                            position: 'inside',
+                            formatter: '{b}: {c}人'
+                        },
+                        labelLine: {
+                            length: 10,
+                            lineStyle: {
+                                width: 1,
+                                type: 'solid'
+                            }
+                        },
+                        itemStyle: {
+                            borderColor: '#fff',
+                            borderWidth: 1
+                        },
+                        emphasis: {
+                            label: {
+                                fontSize: 20
+                            }
+                        },
+                        data: data
+                    }
+                ]
             });
         }
 
