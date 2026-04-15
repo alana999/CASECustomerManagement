@@ -18,8 +18,8 @@ class MLModelManager:
         return cls._instance
 
     def _load_all_models(self):
-        # 假设根目录在 backend 的上一层
-        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        # 当前文件位于 backend/models 目录下
+        models_dir = os.path.dirname(__file__)
         
         model_files = {
             'lightgbm': 'lgb_model.pkl',
@@ -30,7 +30,7 @@ class MLModelManager:
         }
         
         for name, filename in model_files.items():
-            path = os.path.join(base_dir, filename)
+            path = os.path.join(models_dir, filename)
             if os.path.exists(path):
                 try:
                     with open(path, 'rb') as f:
